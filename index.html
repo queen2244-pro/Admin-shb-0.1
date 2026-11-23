@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لجنتہ الامتحانات · Admin</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Nastaliq+Urdu:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase SDK (compat v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <style>
+    /* ========== GLOBAL RESET & VARIABLES ========== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --cream: #FAF5F0;
+      --card: #FFFFFF;
+      --burgundy1: #5B0E2D;
+      --burgundy2: #3A061B;
+      --gold: #D4AF37;
+      --gold-soft: #E8C96A;
+      --text: #2B1A1F;
+      --text-muted: #7A6A6E;
+      --shadow: 0 10px 30px rgba(58,6,27,0.08);
+      --shadow-strong: 0 16px 40px rgba(58,6,27,0.16);
+      --radius: 20px;
+      --radius-sm: 14px;
+      --header-grad: linear-gradient(135deg, #5B0E2D 0%, #3A061B 100%);
+      --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+      --font-urdu: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+      --font-arabic: 'Amiri', serif;
+      --input-bg: #F6EFE8;
+      --danger: #C0392B;
+      --success: #27AE60;
+    }
+    html, body { min-height: 100dvh; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--cream);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    /* ========== ADMIN LOGIN GATE ========== */
+    #gate-screen {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      background: var(--header-grad);
+    }
+    #gate-screen::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(212,175,55,0.18), transparent 55%);
+      pointer-events: none;
+    }
+    .gate-card {
+      position: relative;
+      background: #FFFFFF;
+      border-radius: 24px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+      width: 100%; max-width: 400px;
+      padding: 36px 28px;
+      text-align: center;
+      border: 1px solid rgba(212,175,55,0.4);
+    }
+    .gate-icon { font-size: 2.4rem; margin-bottom: 6px; }
+    .gate-title { font-family: var(--font-arabic); font-size: 1.8rem; color: var(--burgundy1); font-weight: 700; }
+    .gate-sub {
+      font-size: .72rem; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 24px; font-weight: 700;
+    }
+    .field-label {
+      display: block; text-align: left; font-size: .76rem; font-weight: 700;
+      color: var(--text-muted); margin-bottom: 6px; padding-left: 4px; letter-spacing: .04em;
+    }
+    .input-field {
+      width: 100%; background: var(--input-bg);
+      border: 1.5px solid transparent; border-radius: var(--radius-sm);
+      padding: 14px 16px; font-size: .95rem; color: var(--text);
+      font-family: var(--font-sans); outline: none;
+      transition: border .2s ease, background .2s ease;
+      margin-bottom: 16px;
+    }
+    .input-field:focus { border-color: var(--gold); background: #fff; }
+    textarea.input-field { resize: vertical; min-height: 90px; line-height: 1.5; }
+    .btn-gold {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: linear-gradient(135deg, #D4AF37, #B8912A);
+      color: #2B0716; font-weight: 800; font-size: .92rem;
+      border: none; border-radius: 999px;
+      padding: 13px 26px; cursor: pointer;
+      box-shadow: 0 8px 22px rgba(212,175,55,0.35);
+      transition: transform .15s ease;
+      font-family: var(--font-sans);
+      width: 100%;
+    }
+    .btn-gold:active { transform: scale(.97); }
+    .btn-gold.small { width: auto; padding: 9px 18px; font-size: .8rem; }
+    .btn-outline {
+      background: transparent; color: var(--burgundy1);
+      border: 1.5px solid var(--gold); border-radius: 999px;
+      padding: 12px 24px; font-weight: 700; font-size: .88rem;
+      cursor: pointer; font-family: var(--font-sans);
+      transition: background .2s ease;
+    }
+    .btn-outline:active { background: rgba(212,175,55,0.12); }
+    .btn-danger {
+      background: var(--danger); color: #fff; border: none;
+      border-radius: var(--radius-sm); padding: 10px 16px;
+      font-weight: 700; font-size: .8rem; cursor: pointer;
+      font-family: var(--font-sans);
+    }
+    .form-error { color: var(--danger); font-size: .8rem; margin: -8px 0 12px; text-align: left; padding-left: 4px; min-height: 1em; }
+
+    /* ========== ADMIN DASHBOARD ========== */
+    #dashboard { display: none; min-height: 100dvh; flex-direction: column; }
+    #dashboard.visible { display: flex; }
+
+    .admin-header {
+      background: var(--header-grad);
+      color: #fff;
+      padding: 18px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+      border-radius: 0 0 24px 24px;
+      box-shadow: 0 8px 26px rgba(58,6,27,0.35);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .admin-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .admin-logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      object-fit: cover; border: 2px solid rgba(212,175,55,0.6);
+      background: rgba(255,255,255,0.1); flex-shrink: 0;
+    }
+    .admin-title {
+      font-family: var(--font-arabic);
+      font-size: 1.3rem; color: var(--gold-soft); font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .admin-sub {
+      font-size: .6rem; letter-spacing: .18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.6); font-weight: 600;
+    }
+    .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(212,175,55,0.4);
+      color: var(--gold-soft); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; transition: background .2s ease;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.18); }
+
+    .admin-body { flex: 1; display: grid; grid-template-columns: 1fr; gap: 0; }
+    @media (min-width: 960px) { .admin-body { grid-template-columns: 280px 1fr; } }
+
+    .admin-sidebar {
+      background: #fff;
+      border-right: 1px solid rgba(58,6,27,0.06);
+      padding: 16px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      overflow-y: auto;
+    }
+    @media (max-width: 959px) {
+      .admin-sidebar {
+        flex-direction: row; overflow-x: auto;
+        border-right: none; border-bottom: 1px solid rgba(58,6,27,0.08);
+        padding: 10px 12px; gap: 6px;
+      }
+      .side-btn { white-space: nowrap; flex-shrink: 0; }
+      .side-btn span.side-label { font-size: .72rem; }
+    }
+    .side-btn {
+      display: flex; align-items: center; gap: 10px;
+      background: transparent; border: none;
+      padding: 11px 14px; border-radius: 12px;
+      font-family: var(--font-sans); font-size: .84rem; font-weight: 700;
+      color: var(--text-muted); cursor: pointer;
+      text-align: left; transition: background .2s ease, color .2s ease;
+    }
+    .side-btn:hover { background: rgba(212,175,55,0.1); }
+    .side-btn.active {
+      background: linear-gradient(135deg, rgba(91,14,45,0.08), rgba(58,6,27,0.04));
+      color: var(--burgundy1);
+      border-left: 3px solid var(--gold);
+    }
+    .side-btn .side-icon { font-size: 1.1rem; }
+
+    .admin-main { padding: 20px; overflow-y: auto; }
+    .panel { display: none; animation: fadeIn .3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .panel-card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 20px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(212,175,55,0.12);
+    }
+    .panel-title {
+      font-size: 1.02rem; font-weight: 800; color: var(--burgundy1);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .panel-title::before {
+      content: ''; width: 4px; height: 18px; border-radius: 4px;
+      background: linear-gradient(180deg, var(--gold), #B8912A);
+    }
+    .field-group { margin-bottom: 14px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 500px) { .row-2 { grid-template-columns: 1fr; } }
+
+    .switch-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--input-bg); border-radius: var(--radius-sm);
+      padding: 13px 16px; margin-bottom: 14px;
+    }
+    .switch-row span { font-size: .88rem; font-weight: 700; }
+    .switch { position: relative; width: 50px; height: 28px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: #C9B8BD; border-radius: 999px; transition: .3s;
+    }
+    .slider::before {
+      content: ''; position: absolute; width: 22px; height: 22px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+      transition: .3s; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .switch input:checked + .slider { background: var(--gold); }
+    .switch input:checked + .slider::before { transform: translateX(22px); }
+
+    .img-preview {
+      width: 100%; max-height: 160px; object-fit: contain;
+      border-radius: 10px; background: var(--input-bg);
+      margin-top: 8px; display: block;
+      border: 1px solid rgba(58,6,27,0.06);
+    }
+    .file-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--input-bg); border: 1.5px dashed var(--gold);
+      border-radius: 10px; padding: 10px 16px;
+      font-size: .78rem; font-weight: 700; color: var(--text);
+      cursor: pointer; font-family: var(--font-sans);
+      transition: background .2s ease;
+    }
+    .file-btn:hover { background: #fff; }
+    .url-row { display: flex; gap: 8px; margin-top: 8px; }
+    .url-row input { flex: 1; margin-bottom: 0; }
+
+    .list-item {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--input-bg); border-radius: var(--radius-sm);
+      padding: 12px 14px; margin-bottom: 10px;
+      border: 1px solid rgba(58,6,27,0.04);
+    }
+    .list-item img.thumb {
+      width: 52px; height: 52px; border-radius: 10px;
+      object-fit: cover; background: #e8ddd4; flex-shrink: 0;
+    }
+    .list-item .li-body { flex: 1; min-width: 0; }
+    .list-item .li-title {
+      font-size: .88rem; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .list-item .li-sub {
+      font-size: .74rem; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .li-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .mini-btn {
+      background: #fff; border: 1px solid rgba(58,6,27,0.12);
+      border-radius: 8px; padding: 6px 10px;
+      font-size: .72rem; font-weight: 700; cursor: pointer;
+      font-family: var(--font-sans); color: var(--text);
+      transition: background .15s ease;
+    }
+    .mini-btn:hover { background: var(--input-bg); }
+    .mini-btn.danger { color: var(--danger); border-color: rgba(192,57,43,0.3); }
+    .mini-btn.gold { background: linear-gradient(135deg,#D4AF37,#B8912A); color:#2B0716; border:none; }
+
+    .empty-state { text-align: center; padding: 28px 16px; color: var(--text-muted); font-size: .85rem; }
+
+    .add-form {
+      background: #fff; border: 1.5px dashed rgba(212,175,55,0.5);
+      border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px;
+    }
+    .add-form-title {
+      font-size: .82rem; font-weight: 800; color: var(--burgundy1);
+      margin-bottom: 12px; text-transform: uppercase; letter-spacing: .06em;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--burgundy1); color: #fff;
+      border: 1px solid var(--gold); border-radius: 999px;
+      padding: 12px 24px; font-size: .82rem; font-weight: 700;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      z-index: 9999; transition: transform .35s cubic-bezier(.2,.9,.3,1.2);
+      max-width: 90vw; text-align: center; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .urdu-text { font-family: var(--font-urdu); line-height: 2.0; direction: rtl; text-align: right; }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.4); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+  <!-- ================= PASSWORD GATE ================= -->
+  <div id="gate-screen">
+    <div class="gate-card">
+      <div class="gate-icon">🔐</div>
+      <div class="gate-title">لجنتہ الامتحانات</div>
+      <div class="gate-sub">Admin Control Panel</div>
+      <label class="field-label">Admin Password</label>
+      <input class="input-field" type="password" id="gate-password" placeholder="Enter password" autocomplete="off">
+      <div class="form-error" id="gate-error"></div>
+      <button class="btn-gold" id="gate-submit">Unlock Panel</button>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div id="dashboard">
+    <header class="admin-header">
+      <div class="admin-header-left">
+        <img class="admin-logo" id="admin-header-logo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='42'%3E%3Crect width='42' height='42' rx='12' fill='%235B0E2D'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='%23D4AF37' font-family='serif'%3Eلج%3C/text%3E%3C/svg%3E" alt="Logo">
+        <div>
+          <div class="admin-title">لجنتہ الامتحانات</div>
+          <div class="admin-sub">Control Room</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="refresh-btn" title="Refresh">⟳</button>
+        <button class="icon-btn" id="lock-btn" title="Lock">🔒</button>
+      </div>
+    </header>
+
+    <div class="admin-body">
+      <!-- Sidebar -->
+      <nav class="admin-sidebar" id="admin-sidebar">
+        <button class="side-btn active" data-panel="p-maintenance"><span class="side-icon">🛠️</span><span class="side-label">Maintenance & Popup</span></button>
+        <button class="side-btn" data-panel="p-branding"><span class="side-icon">🎨</span><span class="side-label">Branding & UI</span></button>
+        <button class="side-btn" data-panel="p-slider"><span class="side-icon">🖼️</span><span class="side-label">Slider Manager</span></button>
+        <button class="side-btn" data-panel="p-teachers"><span class="side-icon">👨‍🏫</span><span class="side-label">Teachers</span></button>
+        <button class="side-btn" data-panel="p-classes"><span class="side-icon">📚</span><span class="side-label">Classes & Papers</span></button>
+        <button class="side-btn" data-panel="p-tabs"><span class="side-icon">📑</span><span class="side-label">Dynamic Tab 3</span></button>
+        <button class="side-btn" data-panel="p-students"><span class="side-icon">🎓</span><span class="side-label">Students</span></button>
+        <button class="side-btn" data-panel="p-security"><span class="side-icon">🔑</span><span class="side-label">Security</span></button>
+      </nav>
+
+      <!-- Main content -->
+      <main class="admin-main">
+
+        <!-- ===== MAINTENANCE & POPUP ===== -->
+        <section class="panel active" id="p-maintenance">
+          <div class="panel-card">
+            <h3 class="panel-title">Maintenance Mode</h3>
+            <div class="switch-row">
+              <span>Enable Maintenance Mode</span>
+              <label class="switch"><input type="checkbox" id="maint-enabled"><span class="slider"></span></label>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Maintenance Message</label>
+              <textarea class="input-field" id="maint-message" rows="3" placeholder="We'll be back shortly."></textarea>
+            </div>
+            <button class="btn-gold small" id="save-maintenance">Save Maintenance Settings</button>
+          </div>
+
+          <div class="panel-card">
+            <h3 class="panel-title">Welcome WhatsApp Pop-up</h3>
+            <div class="switch-row">
+              <span>Enable Welcome Pop-up</span>
+              <label class="switch"><input type="checkbox" id="popup-enabled"><span class="slider"></span></label>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Pop-up Message</label>
+              <textarea class="input-field" id="popup-message" rows="3" placeholder="Welcome to لجنتہ الامتحانات!"></textarea>
+            </div>
+            <div class="field-group">
+              <label class="field-label">WhatsApp Channel URL</label>
+              <input class="input-field" type="url" id="whatsapp-url" placeholder="https://whatsapp.com/channel/...">
+            </div>
+            <button class="btn-gold small" id="save-popup">Save Pop-up Settings</button>
+          </div>
+        </section>
+
+        <!-- ===== BRANDING & UI ===== -->
+        <section class="panel" id="p-branding">
+          <div class="panel-card">
+            <h3 class="panel-title">App Logo</h3>
+            <div class="field-group">
+              <label class="field-label">Logo (Upload or URL)</label>
+              <label class="file-btn" for="logo-file">📷 Upload Logo</label>
+              <input type="file" id="logo-file" accept="image/*" class="hidden" style="display:none;">
+              <div class="url-row">
+                <input class="input-field" type="url" id="logo-url" placeholder="https://example.com/logo.png">
+              </div>
+              <img class="img-preview" id="logo-preview" src="" alt="" style="display:none;">
+            </div>
+            <button class="btn-gold small" id="save-logo">Save Logo</button>
+          </div>
+
+          <div class="panel-card">
+            <h3 class="panel-title">Background Image</h3>
+            <div class="field-group">
+              <label class="field-label">User Panel Background (Upload or URL)</label>
+              <label class="file-btn" for="bg-file">📷 Upload Background</label>
+              <input type="file" id="bg-file" accept="image/*" class="hidden" style="display:none;">
+              <div class="url-row">
+                <input class="input-field" type="url" id="bg-url" placeholder="https://example.com/bg.jpg">
+              </div>
+              <img class="img-preview" id="bg-preview" src="" alt="" style="display:none;">
+            </div>
+            <button class="btn-gold small" id="save-bg">Save Background</button>
+          </div>
+
+          <div class="panel-card">
+            <h3 class="panel-title">Loader & Ticker & Footer</h3>
+            <div class="field-group">
+              <label class="field-label">Custom Click-Loader Text</label>
+              <input class="input-field" type="text" id="loader-text" placeholder="VORT3X">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Urgent News Ticker</label>
+              <input class="input-field" type="text" id="ticker-text" placeholder="Welcome to لجنتہ الامتحانات">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Footer Text</label>
+              <input class="input-field" type="text" id="footer-text" placeholder="Made with ❤️ by THE VORT3X TEAM 🏴‍☠️ 2026">
+            </div>
+            <div class="switch-row">
+              <span>Show Footer on All Tabs</span>
+              <label class="switch"><input type="checkbox" id="footer-all-tabs"><span class="slider"></span></label>
+            </div>
+            <button class="btn-gold small" id="save-branding">Save Branding Settings</button>
+          </div>
+        </section>
+
+        <!-- ===== SLIDER MANAGER ===== -->
+        <section class="panel" id="p-slider">
+          <div class="panel-card">
+            <h3 class="panel-title">Home Auto-Slider</h3>
+            <div class="add-form">
+              <div class="add-form-title">Add New Slide</div>
+              <div class="field-group">
+                <label class="field-label">Image (Upload or URL)</label>
+                <label class="file-btn" for="slide-file">📷 Upload Image</label>
+                <input type="file" id="slide-file" accept="image/*" style="display:none;">
+                <div class="url-row">
+                  <input class="input-field" type="url" id="slide-url" placeholder="https://example.com/image.jpg">
+                </div>
+                <img class="img-preview" id="slide-preview" src="" alt="" style="display:none;">
+              </div>
+              <button class="btn-gold small" id="add-slide-btn">Add Slide</button>
+            </div>
+            <div id="slider-list"></div>
+          </div>
+        </section>
+
+        <!-- ===== TEACHERS ===== -->
+        <section class="panel" id="p-teachers">
+          <div class="panel-card">
+            <h3 class="panel-title">Teachers Manager</h3>
+            <div class="add-form">
+              <div class="add-form-title">Add Teacher</div>
+              <div class="field-group">
+                <label class="field-label">Teacher Name</label>
+                <input class="input-field" type="text" id="teacher-name" placeholder="Teacher name">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Description</label>
+                <textarea class="input-field" id="teacher-desc" rows="3" placeholder="Description (Urdu/English)"></textarea>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Image (Upload or URL)</label>
+                <label class="file-btn" for="teacher-file">📷 Upload Image</label>
+                <input type="file" id="teacher-file" accept="image/*" style="display:none;">
+                <div class="url-row">
+                  <input class="input-field" type="url" id="teacher-url" placeholder="https://example.com/teacher.jpg">
+                </div>
+                <img class="img-preview" id="teacher-preview" src="" alt="" style="display:none;">
+              </div>
+              <button class="btn-gold small" id="add-teacher-btn">Add Teacher</button>
+            </div>
+            <div id="teacher-list"></div>
+          </div>
+        </section>
+
+        <!-- ===== CLASSES & PAPERS ===== -->
+        <section class="panel" id="p-classes">
+          <div class="panel-card">
+            <h3 class="panel-title">Classes & Past Papers</h3>
+            <div class="add-form">
+              <div class="add-form-title">Add New Class</div>
+              <div class="field-group">
+                <label class="field-label">Class Name</label>
+                <input class="input-field" type="text" id="new-class-name" placeholder="e.g. 9th Class">
+              </div>
+              <button class="btn-gold small" id="add-class-btn">Add Class</button>
+            </div>
+            <div id="class-list"></div>
+          </div>
+        </section>
+
+        <!-- ===== DYNAMIC TAB 3 (only) ===== -->
+        <section class="panel" id="p-tabs">
+          <div class="panel-card">
+            <h3 class="panel-title">Dynamic Tab 3 Editor</h3>
+            <div class="field-group">
+              <label class="field-label">Tab 3 Label</label>
+              <input class="input-field" type="text" id="tab3-label" placeholder="Update">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Tab 3 Content</label>
+              <textarea class="input-field" id="tab3-content" rows="6" placeholder="Content for Tab 3..."></textarea>
+            </div>
+            <button class="btn-gold small" id="save-tabs">Save Tab 3</button>
+            <p style="font-size:.74rem; color:var(--text-muted); margin-top:12px; line-height:1.5;">
+              ℹ️ The 4th tab in the user panel is now the dedicated <strong>Profile</strong> tab and is no longer editable here.
+            </p>
+          </div>
+        </section>
+
+        <!-- ===== STUDENTS ===== -->
+        <section class="panel" id="p-students">
+          <div class="panel-card">
+            <h3 class="panel-title">Registered Students</h3>
+            <div class="add-form">
+              <div class="add-form-title">Manually Add Student</div>
+              <div class="row-2">
+                <div class="field-group">
+                  <label class="field-label">Name</label>
+                  <input class="input-field" type="text" id="manual-name" placeholder="Student name">
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Email</label>
+                  <input class="input-field" type="email" id="manual-email" placeholder="student@example.com">
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Class</label>
+                <input class="input-field" type="text" id="manual-class" placeholder="e.g. 10th">
+              </div>
+              <button class="btn-gold small" id="add-manual-student">Add Student Record</button>
+            </div>
+            <div id="student-list"></div>
+          </div>
+        </section>
+
+        <!-- ===== SECURITY ===== -->
+        <section class="panel" id="p-security">
+          <div class="panel-card">
+            <h3 class="panel-title">Change Admin Password</h3>
+            <div class="field-group">
+              <label class="field-label">New Password</label>
+              <input class="input-field" type="password" id="new-admin-password" placeholder="Enter new password">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Confirm Password</label>
+              <input class="input-field" type="password" id="confirm-admin-password" placeholder="Confirm new password">
+            </div>
+            <div class="form-error" id="password-error"></div>
+            <button class="btn-gold small" id="save-password">Update Password</button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* =========================================================
+       FIREBASE INIT
+    ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1WFj7A71Xp9SidcwSzm6KH6iYe4oQT2k",
+      authDomain: "past-paper-project.firebaseapp.com",
+      databaseURL: "https://past-paper-project-default-rtdb.firebaseio.com",
+      projectId: "past-paper-project",
+      storageBucket: "past-paper-project.firebasestorage.app",
+      messagingSenderId: "780733257217",
+      appId: "1:780733257217:web:53099e77fde93051385200",
+      measurementId: "G-EV86N9QVGV"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    /* =========================================================
+       GLOBAL STATE
+    ========================================================= */
+    const state = {
+      unlocked: false,
+      adminPassword: 'TEAMVIRT3X',
+      settings: {},
+      listeners: [],
+      editingTeacherId: null,
+      editingClassId: null,
+      tempImages: { logo: '', bg: '', slide: '', teacher: '' }
+    };
+
+    /* =========================================================
+       HELPERS
+    ========================================================= */
+    const $ = id => document.getElementById(id);
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[s]));
+    }
+
+    function showToast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    function compressImage(file, maxWidth = 1000, quality = 0.72) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function detachAllListeners() {
+      state.listeners.forEach(ref => { try { ref.off(); } catch (e) {} });
+      state.listeners = [];
+    }
+
+    /* =========================================================
+       GATE LOGIC
+    ========================================================= */
+    function checkGatePassword() {
+      const entered = $('gate-password').value.trim();
+      const err = $('gate-error');
+      if (entered === state.adminPassword) {
+        err.textContent = '';
+        state.unlocked = true;
+        $('gate-screen').style.display = 'none';
+        $('dashboard').classList.add('visible');
+        loadSettings();
+        attachListeners();
+      } else {
+        err.textContent = 'Incorrect password. Try again.';
+        $('gate-password').value = '';
+      }
+    }
+
+    $('gate-submit').addEventListener('click', () => {
+      checkGatePassword();
+    });
+    $('gate-password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkGatePassword();
+    });
+
+    /* =========================================================
+       LOCK / REFRESH
+    ========================================================= */
+    $('lock-btn').addEventListener('click', () => {
+      state.unlocked = false;
+      detachAllListeners();
+      $('dashboard').classList.remove('visible');
+      $('gate-screen').style.display = 'flex';
+      $('gate-password').value = '';
+    });
+
+    $('refresh-btn').addEventListener('click', () => {
+      loadSettings();
+      showToast('Refreshed.');
+    });
+
+    /* =========================================================
+       LOAD SETTINGS
+    ========================================================= */
+    function loadSettings() {
+      db.ref('settings').once('value').then(snap => {
+        const s = snap.val() || {};
+        state.settings = s;
+        state.adminPassword = s.adminPassword || 'TEAMVIRT3X';
+
+        $('maint-enabled').checked = !!s.maintenanceEnabled;
+        $('maint-message').value = s.maintenanceMessage || '';
+        $('popup-enabled').checked = !!s.popupEnabled;
+        $('popup-message').value = s.popupMessage || '';
+        $('whatsapp-url').value = s.whatsappUrl || '';
+        $('logo-url').value = s.logoUrl || '';
+        $('bg-url').value = s.backgroundImage || '';
+        $('loader-text').value = s.loaderText || 'VORT3X';
+        $('ticker-text').value = s.tickerText || '';
+        $('footer-text').value = s.footerText || 'Made with ❤️ by THE VORT3X TEAM 🏴‍☠️ 2026';
+        $('footer-all-tabs').checked = !!s.footerAllTabs;
+
+        if (s.logoUrl) { $('logo-preview').src = s.logoUrl; $('logo-preview').style.display = 'block'; }
+        if (s.backgroundImage) { $('bg-preview').src = s.backgroundImage; $('bg-preview').style.display = 'block'; }
+        if (s.logoUrl) $('admin-header-logo').src = s.logoUrl;
+      });
+
+      db.ref('tabs').once('value').then(snap => {
+        const t = snap.val() || {};
+        $('tab3-label').value = t.tab3Label || 'Update';
+        $('tab3-content').value = t.tab3Content || '';
+      });
+    }
+
+    /* =========================================================
+       SAVE SETTINGS FUNCTIONS
+    ========================================================= */
+    $('save-maintenance').addEventListener('click', () => {
+      const data = {
+        maintenanceEnabled: $('maint-enabled').checked,
+        maintenanceMessage: $('maint-message').value.trim()
+      };
+      db.ref('settings').update(data)
+        .then(() => showToast('Maintenance settings saved.'))
+        .catch(err => showToast('Save failed: ' + err.message));
+    });
+
+    $('save-popup').addEventListener('click', () => {
+      const data = {
+        popupEnabled: $('popup-enabled').checked,
+        popupMessage: $('popup-message').value.trim(),
+        whatsappUrl: $('whatsapp-url').value.trim()
+      };
+      db.ref('settings').update(data)
+        .then(() => showToast('Pop-up settings saved.'))
+        .catch(err => showToast('Save failed: ' + err.message));
+    });
+
+    $('save-logo').addEventListener('click', () => {
+      const url = $('logo-url').value.trim() || state.tempImages.logo;
+      if (!url) { showToast('Please upload an image or enter URL.'); return; }
+      db.ref('settings/logoUrl').set(url)
+        .then(() => {
+          showToast('Logo saved.');
+          $('admin-header-logo').src = url;
+        })
+        .catch(err => showToast('Save failed: ' + err.message));
+    });
+
+    $('save-bg').addEventListener('click', () => {
+      const url = $('bg-url').value.trim() || state.tempImages.bg;
+      if (!url) { showToast('Please upload an image or enter URL.'); return; }
+      db.ref('settings/backgroundImage').set(url)
+        .then(() => showToast('Background saved.'))
+        .catch(err => showToast('Save failed: ' + err.message));
+    });
+
+    $('save-branding').addEventListener('click', () => {
+      const data = {
+        loaderText: $('loader-text').value.trim() || 'VORT3X',
+        tickerText: $('ticker-text').value.trim(),
+        footerText: $('footer-text').value.trim(),
+        footerAllTabs: $('footer-all-tabs').checked
+      };
+      db.ref('settings').update(data)
+        .then(() => showToast('Branding settings saved.'))
+        .catch(err => showToast('Save failed: ' + err.message));
+    });
+
+    /* =========================================================
+       IMAGE UPLOAD PREVIEWS
+    ========================================================= */
+    function setupImageUpload(fileInputId, urlInputId, previewId, tempKey) {
+      const fileInput = $(fileInputId);
+      const urlInput = $(urlInputId);
+      const preview = $(previewId);
+
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const base64 = await compressImage(file, 900, 0.72);
+          state.tempImages[tempKey] = base64;
+          preview.src = base64;
+          preview.style.display = 'block';
+          urlInput.value = '';
+          showToast('Image uploaded.');
+        } catch (err) {
+          showToast('Upload failed.');
+        }
+        fileInput.value = '';
+      });
+
+      urlInput.addEventListener('input', () => {
+        const url = urlInput.value.trim();
+        if (url) {
+          preview.src = url;
+          preview.style.display = 'block';
+          state.tempImages[tempKey] = url;
+        } else {
+          preview.style.display = 'none';
+          state.tempImages[tempKey] = '';
+        }
+      });
+    }
+
+    setupImageUpload('logo-file', 'logo-url', 'logo-preview', 'logo');
+    setupImageUpload('bg-file', 'bg-url', 'bg-preview', 'bg');
+    setupImageUpload('slide-file', 'slide-url', 'slide-preview', 'slide');
+    setupImageUpload('teacher-file', 'teacher-url', 'teacher-preview', 'teacher');
+
+    /* =========================================================
+       SLIDER MANAGER
+    ========================================================= */
+    $('add-slide-btn').addEventListener('click', () => {
+      const url = $('slide-url').value.trim() || state.tempImages.slide;
+      if (!url) { showToast('Please upload an image or enter URL.'); return; }
+      const newRef = db.ref('sliders').push();
+      newRef.set({ url: url, order: Date.now() })
+        .then(() => {
+          $('slide-url').value = '';
+          $('slide-preview').style.display = 'none';
+          state.tempImages.slide = '';
+          showToast('Slide added.');
+        })
+        .catch(err => showToast('Failed: ' + err.message));
+    });
+
+    function renderSliderList(slidersObj) {
+      const list = $('slider-list');
+      list.innerHTML = '';
+      const items = slidersObj ? Object.entries(slidersObj).map(([id, v]) => ({ id, ...v })) : [];
+      items.sort((a, b) => (a.order || 0) - (b.order || 0));
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state">No slides yet.</div>`;
+        return;
+      }
+      items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `
+          <img class="thumb" src="${escapeHTML(item.url || '')}" alt="slide">
+          <div class="li-body">
+            <div class="li-title">Slide ${idx + 1}</div>
+            <div class="li-sub">${escapeHTML((item.url || '').substring(0, 42))}…</div>
+          </div>
+          <div class="li-actions">
+            <button class="mini-btn" data-up="${item.id}">↑</button>
+            <button class="mini-btn" data-down="${item.id}">↓</button>
+            <button class="mini-btn danger" data-del="${item.id}">✕</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      list.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (confirm('Delete this slide?')) {
+            db.ref('sliders/' + btn.dataset.del).remove()
+              .then(() => showToast('Slide deleted.'))
+              .catch(err => showToast('Failed: ' + err.message));
+          }
+        });
+      });
+
+      list.querySelectorAll('[data-up]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.up;
+          const sorted = items.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+          const idx = sorted.findIndex(s => s.id === id);
+          if (idx > 0) {
+            const prev = sorted[idx - 1];
+            const curOrder = sorted[idx].order || 0;
+            const prevOrder = prev.order || 0;
+            db.ref('sliders/' + id + '/order').set(prevOrder - 1);
+            db.ref('sliders/' + prev.id + '/order').set(curOrder);
+          }
+        });
+      });
+
+      list.querySelectorAll('[data-down]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.down;
+          const sorted = items.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+          const idx = sorted.findIndex(s => s.id === id);
+          if (idx < sorted.length - 1) {
+            const next = sorted[idx + 1];
+            const curOrder = sorted[idx].order || 0;
+            const nextOrder = next.order || 0;
+            db.ref('sliders/' + id + '/order').set(nextOrder + 1);
+            db.ref('sliders/' + next.id + '/order').set(curOrder);
+          }
+        });
+      });
+    }
+
+    /* =========================================================
+       TEACHERS MANAGER
+    ========================================================= */
+    $('add-teacher-btn').addEventListener('click', () => {
+      const name = $('teacher-name').value.trim();
+      const desc = $('teacher-desc').value.trim();
+      const img = $('teacher-url').value.trim() || state.tempImages.teacher;
+      if (!name) { showToast('Teacher name is required.'); return; }
+      const newRef = db.ref('teachers').push();
+      newRef.set({
+        name: name,
+        description: desc,
+        image: img || '',
+        order: Date.now()
+      }).then(() => {
+        $('teacher-name').value = '';
+        $('teacher-desc').value = '';
+        $('teacher-url').value = '';
+        $('teacher-preview').style.display = 'none';
+        state.tempImages.teacher = '';
+        showToast('Teacher added.');
+      }).catch(err => showToast('Failed: ' + err.message));
+    });
+
+    function renderTeacherList(teachersObj) {
+      const list = $('teacher-list');
+      list.innerHTML = '';
+      const items = teachersObj ? Object.entries(teachersObj).map(([id, v]) => ({ id, ...v })) : [];
+      items.sort((a, b) => (a.order || 0) - (b.order || 0));
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state">No teachers yet.</div>`;
+        return;
+      }
+      items.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `
+          <img class="thumb" src="${escapeHTML(t.image || '')}" alt="teacher">
+          <div class="li-body">
+            <div class="li-title">${escapeHTML(t.name || 'Unnamed')}</div>
+            <div class="li-sub">${escapeHTML((t.description || '').substring(0, 46))}…</div>
+          </div>
+          <div class="li-actions">
+            <button class="mini-btn" data-edit="${t.id}">Edit</button>
+            <button class="mini-btn danger" data-del="${t.id}">✕</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      list.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (confirm('Delete this teacher?')) {
+            db.ref('teachers/' + btn.dataset.del).remove()
+              .then(() => showToast('Teacher deleted.'))
+              .catch(err => showToast('Failed: ' + err.message));
+          }
+        });
+      });
+
+      list.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.edit;
+          const teacher = items.find(x => x.id === id);
+          if (!teacher) return;
+          state.editingTeacherId = id;
+          const newName = prompt('Teacher name:', teacher.name || '');
+          if (newName === null) return;
+          const newDesc = prompt('Description:', teacher.description || '');
+          if (newDesc === null) return;
+          const newImg = prompt('Image URL (leave blank to keep):', teacher.image || '');
+          const update = {};
+          update.name = newName.trim();
+          update.description = newDesc.trim();
+          if (newImg && newImg.trim()) update.image = newImg.trim();
+          db.ref('teachers/' + id).update(update)
+            .then(() => showToast('Teacher updated.'))
+            .catch(err => showToast('Failed: ' + err.message));
+        });
+      });
+    }
+
+    /* =========================================================
+       CLASSES MANAGER
+    ========================================================= */
+    $('add-class-btn').addEventListener('click', () => {
+      const name = $('new-class-name').value.trim();
+      if (!name) { showToast('Class name is required.'); return; }
+      const newRef = db.ref('classes').push();
+      newRef.set({
+        name: name,
+        decemberUrl: '',
+        finalUrl: '',
+        order: Date.now()
+      }).then(() => {
+        $('new-class-name').value = '';
+        showToast('Class added.');
+      }).catch(err => showToast('Failed: ' + err.message));
+    });
+
+    function renderClassList(classesObj) {
+      const list = $('class-list');
+      list.innerHTML = '';
+      const items = classesObj ? Object.entries(classesObj).map(([id, v]) => ({ id, ...v })) : [];
+      items.sort((a, b) => (a.order || 0) - (b.order || 0));
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state">No classes yet.</div>`;
+        return;
+      }
+      items.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.style.flexWrap = 'wrap';
+        row.innerHTML = `
+          <div class="li-body" style="flex:1 1 100%;">
+            <div class="li-title">${escapeHTML(c.name || 'Unnamed')}</div>
+            <div class="li-sub">Dec: ${escapeHTML((c.decemberUrl || '—').substring(0, 34))}</div>
+            <div class="li-sub">Final: ${escapeHTML((c.finalUrl || '—').substring(0, 34))}</div>
+          </div>
+          <div class="li-actions" style="flex:1 1 100%; justify-content:flex-end; margin-top:8px;">
+            <button class="mini-btn" data-edit="${c.id}">Edit</button>
+            <button class="mini-btn danger" data-del="${c.id}">Delete</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      list.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (confirm('Delete this class and its links?')) {
+            db.ref('classes/' + btn.dataset.del).remove()
+              .then(() => showToast('Class deleted.'))
+              .catch(err => showToast('Failed: ' + err.message));
+          }
+        });
+      });
+
+      list.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.edit;
+          const cls = items.find(x => x.id === id);
+          if (!cls) return;
+          const newName = prompt('Class name:', cls.name || '');
+          if (newName === null) return;
+          const newDec = prompt('December papers URL:', cls.decemberUrl || '');
+          if (newDec === null) return;
+          const newFinal = prompt('Final papers URL:', cls.finalUrl || '');
+          if (newFinal === null) return;
+          db.ref('classes/' + id).update({
+            name: newName.trim(),
+            decemberUrl: newDec.trim(),
+            finalUrl: newFinal.trim()
+          }).then(() => showToast('Class updated.'))
+            .catch(err => showToast('Failed: ' + err.message));
+        });
+      });
+    }
+
+    /* =========================================================
+       TAB 3 SAVE (Tab 4 removed — now Profile tab)
+    ========================================================= */
+    $('save-tabs').addEventListener('click', () => {
+      const data = {
+        tab3Label: $('tab3-label').value.trim() || 'Update',
+        tab3Content: $('tab3-content').value
+      };
+      db.ref('tabs').update(data)
+        .then(() => showToast('Tab 3 saved.'))
+        .catch(err => showToast('Failed: ' + err.message));
+    });
+
+    /* =========================================================
+       STUDENTS MANAGER
+    ========================================================= */
+    $('add-manual-student').addEventListener('click', () => {
+      const name = $('manual-name').value.trim();
+      const email = $('manual-email').value.trim();
+      const cls = $('manual-class').value.trim();
+      if (!name || !email) { showToast('Name and email are required.'); return; }
+      const uid = 'manual_' + Date.now();
+      db.ref('users/' + uid).set({
+        uid: uid,
+        email: email,
+        name: name,
+        studentClass: cls,
+        photo: '',
+        blocked: false,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      }).then(() => {
+        $('manual-name').value = '';
+        $('manual-email').value = '';
+        $('manual-class').value = '';
+        showToast('Student record added.');
+      }).catch(err => showToast('Failed: ' + err.message));
+    });
+
+    function renderStudentList(usersObj) {
+      const list = $('student-list');
+      list.innerHTML = '';
+      const items = usersObj ? Object.entries(usersObj).map(([id, v]) => ({ id, ...v })) : [];
+      items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state">No registered students.</div>`;
+        return;
+      }
+      items.forEach(u => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `
+          <img class="thumb" src="${escapeHTML(u.photo || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2252%22 height=%2252%22%3E%3Crect width=%2252%22 height=%2252%22 rx=%2210%22 fill=%22%23e8ddd4%22/%3E%3Ctext x=%2250%25%22 y=%2255%25%22 text-anchor=%22middle%22 font-size=%2220%22 fill=%22%237A6A6E%22%3E👤%3C/text%3E%3C/svg%3E')}" alt="student">
+          <div class="li-body">
+            <div class="li-title">${escapeHTML(u.name || 'Unnamed')} ${u.blocked ? '🚫' : ''}</div>
+            <div class="li-sub">${escapeHTML(u.email || '')} · ${escapeHTML(u.studentClass || '—')}</div>
+          </div>
+          <div class="li-actions">
+            <button class="mini-btn" data-toggle="${u.id}">${u.blocked ? 'Unblock' : 'Block'}</button>
+            <button class="mini-btn danger" data-del="${u.id}">✕</button>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+
+      list.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (confirm('Delete this student record permanently?')) {
+            db.ref('users/' + btn.dataset.del).remove()
+              .then(() => showToast('Student deleted.'))
+              .catch(err => showToast('Failed: ' + err.message));
+          }
+        });
+      });
+
+      list.querySelectorAll('[data-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.toggle;
+          const student = items.find(x => x.id === id);
+          if (!student) return;
+          db.ref('users/' + id + '/blocked').set(!student.blocked)
+            .then(() => showToast(student.blocked ? 'Student unblocked.' : 'Student blocked.'))
+            .catch(err => showToast('Failed: ' + err.message));
+        });
+      });
+    }
+
+    /* =========================================================
+       SECURITY / PASSWORD
+    ========================================================= */
+    $('save-password').addEventListener('click', () => {
+      const pw = $('new-admin-password').value;
+      const confirm = $('confirm-admin-password').value;
+      const err = $('password-error');
+      err.textContent = '';
+      if (!pw || pw.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+      if (pw !== confirm) { err.textContent = 'Passwords do not match.'; return; }
+      db.ref('settings/adminPassword').set(pw)
+        .then(() => {
+          state.adminPassword = pw;
+          $('new-admin-password').value = '';
+          $('confirm-admin-password').value = '';
+          showToast('Admin password updated.');
+        })
+        .catch(err2 => showToast('Failed: ' + err2.message));
+    });
+
+    /* =========================================================
+       SIDEBAR NAVIGATION
+    ========================================================= */
+    document.querySelectorAll('.side-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const panel = $(btn.dataset.panel);
+        if (panel) panel.classList.add('active');
+      });
+    });
+
+    /* =========================================================
+       REALTIME LISTENERS
+    ========================================================= */
+    function attachListeners() {
+      detachAllListeners();
+
+      const sliderRef = db.ref('sliders');
+      sliderRef.on('value', snap => renderSliderList(snap.val()));
+      state.listeners.push(sliderRef);
+
+      const teacherRef = db.ref('teachers');
+      teacherRef.on('value', snap => renderTeacherList(snap.val()));
+      state.listeners.push(teacherRef);
+
+      const classRef = db.ref('classes');
+      classRef.on('value', snap => renderClassList(snap.val()));
+      state.listeners.push(classRef);
+
+      const userRef = db.ref('users');
+      userRef.on('value', snap => renderStudentList(snap.val()));
+      state.listeners.push(userRef);
+
+      const settingsRef = db.ref('settings');
+      settingsRef.on('value', snap => {
+        const s = snap.val() || {};
+        state.settings = s;
+        state.adminPassword = s.adminPassword || 'TEAMVIRT3X';
+        if (s.logoUrl) $('admin-header-logo').src = s.logoUrl;
+      });
+      state.listeners.push(settingsRef);
+    }
+  </script>
+</body>
+</html>
